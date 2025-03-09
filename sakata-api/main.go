@@ -4,42 +4,39 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/sakata/sakata-api/internal/db"    // ← 修正
+	"github.com/sakata/sakata-api/internal/model" // ← 修正
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
-// 記事のデータ構造
-type Article struct {
-	ID      int    `json:"id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
-}
-
-// 仮データ
-var articles = []Article{
-	{ID: 1, Title: "毎日コツコツgo", Content: "goの基礎を学びたい"},
-	{ID: 2, Title: "Echoってなんだ", Content: "Echoの使い方を学びたい"},
-	{ID: 3, Title: "メモを取ることを忘れず", Content: "梵字徹底"},
-}
-
 func main() {
 	e := echo.New()
 
-	// CORS設定ってなんぞや
+	// MySQL 初期化
+	db.InitDB()
+
+	// CORS設定
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:3000"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
 	}))
 
-	// 記事一覧API
+	// 記事API
 	e.GET("/articles", getArticles)
 	e.GET("/articles/:id", getArticleByID)
+	e.POST("/articles", createArticle) // 新規作成用APIを追加
 
 	// サーバー起動
 	e.Logger.Fatal(e.Start(":8080"))
 }
 
 func getArticles(c echo.Context) error {
+	var articles []model.Article
+	if err := db.DB.Find(&articles).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "データ取得に失敗しました"})
+	}
 	return c.JSON(http.StatusOK, articles)
 }
 
@@ -49,10 +46,23 @@ func getArticleByID(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
 	}
 
-	for _, article := range articles {
-		if article.ID == id {
-			return c.JSON(http.StatusOK, article)
-		}
+	var article model.Article
+	if err := db.DB.First(&article, id).Error; err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "記事が見つかりません"})
 	}
-	return c.JSON(http.StatusNotFound, map[string]string{"error": "Article not found"})
+
+	return c.JSON(http.StatusOK, article)
+}
+
+func createArticle(c echo.Context) error {
+	article := new(model.Article)
+	if err := c.Bind(article); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	}
+
+	if err := db.DB.Create(article).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "データ保存に失敗しました"})
+	}
+
+	return c.JSON(http.StatusCreated, article)
 }
