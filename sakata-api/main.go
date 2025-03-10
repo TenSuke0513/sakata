@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/sakata/sakata-api/internal/db"    // ← 修正
-	"github.com/sakata/sakata-api/internal/model" // ← 修正
+	"github.com/sakata/sakata-api/internal/db" // ← 修正
+	"github.com/sakata/sakata-api/internal/model"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"

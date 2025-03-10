@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
-import { Container, Card, CardContent, Typography } from "@mui/material";
+import React from "react";
+import { Card, CardContent, Typography } from "@mui/material";
 
 type Article = {
     id: number;
@@ -9,29 +7,20 @@ type Article = {
     content: string;
 };
 
-const ArticleDetail: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
-    const [article, setArticle] = useState<Article | null>(null);
+// 🔹 Props の型を定義
+interface ArticleDetailProps {
+    article: Article;
+}
 
-    useEffect(() => {
-        axios.get(`http://localhost:8080/articles/${id}`)
-            .then(res => setArticle(res.data))
-            .catch(err => console.error("API Error:", err));
-    }, [id]);
-
-    if (!article) {
-        return <Typography>記事が見つかりません</Typography>;
-    }
-
+// 🔹 `Props` を受け取るように修正
+const ArticleDetail: React.FC<ArticleDetailProps> = ({ article }) => {
     return (
-        <Container maxWidth="md">
-            <Card>
-                <CardContent>
-                    <Typography variant="h4">{article.title}</Typography>
-                    <Typography variant="body1">{article.content}</Typography>
-                </CardContent>
-            </Card>
-        </Container>
+        <Card>
+            <CardContent>
+                <Typography variant="h4">{article.title}</Typography>
+                <Typography variant="body1">{article.content}</Typography>
+            </CardContent>
+        </Card>
     );
 };
 
