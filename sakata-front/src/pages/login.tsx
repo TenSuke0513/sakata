@@ -19,7 +19,7 @@ const Login = () => {
         throw new Error("ログインに失敗しました");
       }
 
-      alert("ログイン成功！");
+      alert("ログイン成功だ！");
 
       navigete("/")
 
