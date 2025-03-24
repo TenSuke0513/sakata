@@ -13,6 +13,7 @@ const Login = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -21,7 +22,7 @@ const Login = () => {
 
       alert("ログイン成功だ！");
 
-      navigete("/")
+      navigete("/articleList")
 
     } catch (error) {
       alert(error instanceof Error ? error.message : "エラーが発生しました");

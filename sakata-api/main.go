@@ -21,9 +21,14 @@ func main() {
 
 	// CORS設定
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:3000"},
-		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowCredentials: true,
 	}))
+
+	//mypage
+	e.GET("/mypage", getMyPage)
+	e.GET("/mypage/articles", getMyArticles)
 
 	// ユーザー
 	e.POST("/auth/signin", createUser)
@@ -36,6 +41,36 @@ func main() {
 
 	// サーバー起動
 	e.Logger.Fatal(e.Start(":8080"))
+}
+
+func getMyPage(c echo.Context) error {
+	cookie, err := c.Cookie("user_id")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "ログインが必要です"})
+	}
+	userID, _ := strconv.Atoi(cookie.Value)
+
+	var user model.User
+	if err := db.DB.First(&user, userID).Error; err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "ユーザーが見つかりません"})
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
+
+func getMyArticles(c echo.Context) error {
+	cookie, err := c.Cookie("user_id")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "ログインが必要です"})
+	}
+	userID, _ := strconv.Atoi(cookie.Value)
+
+	var articles []model.Article
+	if err := db.DB.Where("user_id = ?", userID).Find(&articles).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "記事取得に失敗しました"})
+	}
+
+	return c.JSON(http.StatusOK, articles)
 }
 
 func createUser(c echo.Context) error {
@@ -73,6 +108,7 @@ func postLogin(c echo.Context) error {
 	cookie.Name = "user_id"
 	cookie.Value = strconv.Itoa(int(user.ID))
 	cookie.Expires = time.Now().Add(24 * time.Hour)
+	cookie.Path = "/"
 	cookie.HttpOnly = true
 	c.SetCookie(cookie)
 
@@ -102,13 +138,30 @@ func getArticleByID(c echo.Context) error {
 }
 
 func createArticle(c echo.Context) error {
-	article := new(model.Article)
-	if err := c.Bind(article); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	// Cookieから user_id を取得
+	cookie, err := c.Cookie("user_id")
+	if err != nil {
+		fmt.Println("Cookie 取得失敗:", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "ログインが必要です"})
 	}
 
+	userID, err := strconv.Atoi(cookie.Value)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "user_idが不正です"})
+	}
+
+	// リクエストボディから記事データ取得
+	article := new(model.Article)
+	if err := c.Bind(article); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエストが不正です"})
+	}
+
+	// user_id を埋め込む
+	article.UserID = int(userID)
+
+	// DB保存
 	if err := db.DB.Create(article).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "データ保存に失敗しました"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "記事保存に失敗しました"})
 	}
 
 	return c.JSON(http.StatusCreated, article)

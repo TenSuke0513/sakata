@@ -35,6 +35,15 @@ const ArticleList: React.FC = () => {
             >
                 新規作成
             </Button>
+            <Button
+                variant="contained"
+                color="primary"
+                component={Link}
+                to="/mypage"
+                style={{ marginBottom: "20px" }}
+            >
+                マイページ
+            </Button>
 
             {/* 🔹 記事詳細を表示する場合 */}
             {selectedArticle ? (

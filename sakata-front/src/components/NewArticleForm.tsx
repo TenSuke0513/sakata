@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { TextField, Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 export function NewArticleForm() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const navigete = useNavigate();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -11,10 +14,12 @@ export function NewArticleForm() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content }),
+      credentials: "include",
     });
 
     if (res.ok) {
       console.log("記事が投稿されました！");
+      navigete("/articleList")
     } else {
       console.error("投稿に失敗しました");
     }
